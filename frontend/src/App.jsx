@@ -15,6 +15,7 @@ function getAnalyticsLookupValue(link) {
 
 export default function App() {
   const isMountedRef = useRef(true);
+  const analyticsRequestIdRef = useRef(0);
   const [links, setLinks] = useState([]);
   const [linksErrorMessage, setLinksErrorMessage] = useState('');
   const [isLoadingLinks, setIsLoadingLinks] = useState(true);
@@ -90,6 +91,9 @@ export default function App() {
   async function loadAnalytics(link) {
     const analyticsLookupValue = getAnalyticsLookupValue(link);
     const targetLinkId = getLinkKey(link);
+    const requestId = analyticsRequestIdRef.current + 1;
+
+    analyticsRequestIdRef.current = requestId;
 
     if (!analyticsLookupValue) {
       setSelectedLinkAnalytics(null);
@@ -100,26 +104,27 @@ export default function App() {
     }
 
     setIsLoadingAnalytics(true);
+    setSelectedLinkAnalytics(null);
     setAnalyticsErrorMessage('');
     setAnalyticsTargetLinkId(targetLinkId);
 
     try {
       const analytics = await fetchLinkAnalytics(analyticsLookupValue);
 
-      if (!isMountedRef.current) {
+      if (!isMountedRef.current || analyticsRequestIdRef.current !== requestId) {
         return;
       }
 
       setSelectedLinkAnalytics(analytics);
     } catch (error) {
-      if (!isMountedRef.current) {
+      if (!isMountedRef.current || analyticsRequestIdRef.current !== requestId) {
         return;
       }
 
       setSelectedLinkAnalytics(null);
       setAnalyticsErrorMessage(error.message || 'Unable to load link analytics.');
     } finally {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && analyticsRequestIdRef.current === requestId) {
         setIsLoadingAnalytics(false);
         setAnalyticsTargetLinkId(null);
       }
