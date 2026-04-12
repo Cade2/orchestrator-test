@@ -1,14 +1,13 @@
 export default function App() {
   return (
-    <main className="app-shell">
-      <section className="hero">
+    <div className="app-shell">
+      <main className="hero">
         <p className="eyebrow">React Frontend</p>
-        <h1>Frontend initialized.</h1>
+        <h1>Orchestrator Test</h1>
         <p className="copy">
-          This project is set up with React and Vite inside the <code>frontend</code>{' '}
-          folder.
+          This is the root React component for the frontend application.
         </p>
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }
