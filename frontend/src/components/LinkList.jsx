@@ -1,5 +1,22 @@
 import { getRedirectUrl } from '../api';
 
+function formatDateTime(value) {
+  if (!value) {
+    return 'Unknown';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown';
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+}
+
 function getTotalClicks(link) {
   if (typeof link.totalClicks === 'number') {
     return link.totalClicks;
@@ -45,6 +62,7 @@ export default function LinkList({
       {links.map((link) => {
         const shortUrl = getRedirectUrl(link.slug);
         const totalClicks = getTotalClicks(link);
+        const createdAt = link.createdAt || link.timestamp || null;
         const linkKey = link.id || link.slug;
         const isSelected = linkKey === selectedLinkId;
         const isLoadingRowAnalytics = isLoadingAnalytics && linkKey === analyticsTargetLinkId;
@@ -70,6 +88,8 @@ export default function LinkList({
               </p>
 
               <p>Total clicks: {totalClicks}</p>
+
+              <p>Created: {formatDateTime(createdAt)}</p>
 
               <div className="link-list__actions">
                 {typeof onSelect === 'function' ? (
