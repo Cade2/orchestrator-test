@@ -64,7 +64,21 @@ router.get('/health', (_req, res) => {
 });
 
 router.get('/links', (_req, res) => {
-  res.json({ data: listLinks() });
+  const clickCountByLinkId = listClickEvents().reduce((counts, clickEvent) => {
+    if (!clickEvent.linkId) {
+      return counts;
+    }
+
+    counts.set(clickEvent.linkId, (counts.get(clickEvent.linkId) || 0) + 1);
+    return counts;
+  }, new Map());
+
+  const links = listLinks().map((link) => ({
+    ...link,
+    clickCount: clickCountByLinkId.get(link.id) || 0,
+  }));
+
+  res.json({ data: links });
 });
 
 router.post('/links', (req, res) => {
