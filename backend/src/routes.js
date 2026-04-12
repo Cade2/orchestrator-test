@@ -16,6 +16,10 @@ const router = Router();
 const SHORT_CODE_LENGTH = 8;
 const SHORT_CODE_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 function generateShortCode(length = SHORT_CODE_LENGTH) {
   let shortCode = '';
 
@@ -82,27 +86,36 @@ router.get('/links', (_req, res) => {
 });
 
 router.post('/links', (req, res) => {
-  const input = normalizeLinkInput(req.body);
+  try {
+    if (!isPlainObject(req.body)) {
+      return res.status(400).json({ error: 'request body must be a JSON object' });
+    }
 
-  if (!input.url.trim()) {
-    return res.status(400).json({ error: 'url is required' });
+    const input = normalizeLinkInput(req.body);
+    const normalizedUrl = input.url.trim();
+
+    if (!normalizedUrl) {
+      return res.status(400).json({ error: 'url is required' });
+    }
+
+    if (!isValidHttpUrl(normalizedUrl)) {
+      return res.status(400).json({ error: 'url must be a valid http or https URL' });
+    }
+
+    if (input.slug && getLinkBySlug(input.slug)) {
+      return res.status(409).json({ error: 'short code already exists' });
+    }
+
+    const link = createLink({
+      ...input,
+      url: normalizedUrl,
+      slug: input.slug || createUniqueShortCode(),
+    });
+
+    return res.status(201).json({ data: link });
+  } catch (_error) {
+    return res.status(400).json({ error: 'invalid create-link request' });
   }
-
-  if (!isValidHttpUrl(input.url)) {
-    return res.status(400).json({ error: 'url must be a valid http or https URL' });
-  }
-
-  if (input.slug && getLinkBySlug(input.slug)) {
-    return res.status(409).json({ error: 'short code already exists' });
-  }
-
-  const link = createLink({
-    ...input,
-    url: input.url.trim(),
-    slug: input.slug || createUniqueShortCode(),
-  });
-
-  return res.status(201).json({ data: link });
 });
 
 router.get('/links/:code', (req, res) => {
