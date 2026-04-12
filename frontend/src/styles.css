@@ -352,6 +352,20 @@ ul > li > article p + p {
   margin-top: 10px;
 }
 
+ul > li > article.is-selected,
+ul.link-list > li > article.is-selected,
+.link-list > li > article.is-selected {
+  border-color: rgba(180, 83, 9, 0.34);
+  box-shadow: 0 22px 38px rgba(64, 35, 10, 0.14);
+}
+
+ul > li > article button,
+ul.link-list > li > article button,
+.link-list > li > article button {
+  margin-top: 16px;
+  min-width: 0;
+}
+
 ul > li > article:hover,
 ul.link-list > li > article:hover,
 .link-list > li > article:hover {

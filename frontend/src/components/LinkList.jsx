@@ -18,6 +18,8 @@ export default function LinkList({
   errorMessage = '',
   isLoading = false,
   links = [],
+  onSelect,
+  selectedLinkId = null,
 }) {
   if (isLoading) {
     return <p className={className}>Loading links...</p>;
@@ -40,10 +42,15 @@ export default function LinkList({
       {links.map((link) => {
         const shortUrl = getRedirectUrl(link.slug);
         const totalClicks = getTotalClicks(link);
+        const linkKey = link.id || link.slug;
+        const isSelected = linkKey === selectedLinkId;
 
         return (
-          <li key={link.id || link.slug}>
-            <article>
+          <li key={linkKey}>
+            <article
+              aria-current={isSelected ? 'true' : undefined}
+              className={isSelected ? 'is-selected' : undefined}
+            >
               <p>
                 Original URL:{' '}
                 <a href={link.url} target="_blank" rel="noreferrer">
@@ -59,6 +66,12 @@ export default function LinkList({
               </p>
 
               <p>Total clicks: {totalClicks}</p>
+
+              {typeof onSelect === 'function' ? (
+                <button type="button" onClick={() => onSelect(link)}>
+                  {isSelected ? 'Viewing analytics' : 'View analytics'}
+                </button>
+              ) : null}
             </article>
           </li>
         );
