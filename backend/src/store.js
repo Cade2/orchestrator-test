@@ -58,9 +58,11 @@ function updateLink(linkId, updates = {}) {
     return null;
   }
 
+  const createdAt = existingLink.createdAt || new Date().toISOString();
   const nextLink = {
     ...existingLink,
     ...updates,
+    createdAt,
     tags: Array.isArray(updates.tags) ? [...updates.tags] : [...existingLink.tags],
     updatedAt: new Date().toISOString(),
   };
