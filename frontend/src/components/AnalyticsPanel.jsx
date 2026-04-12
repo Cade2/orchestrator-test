@@ -56,9 +56,34 @@ function getTotalClicks(analytics) {
     return analytics.clickCount;
   }
 
-  return Array.isArray(analytics?.clickTimestamps)
-    ? analytics.clickTimestamps.length
-    : 0;
+  if (Array.isArray(analytics?.clicks)) {
+    return analytics.clicks.length;
+  }
+
+  return getClickTimestamps(analytics).length;
+}
+
+function getClickTimestamps(analytics) {
+  if (Array.isArray(analytics?.clickTimestamps)) {
+    return analytics.clickTimestamps
+      .filter((timestamp) => typeof timestamp === 'string' && timestamp.trim())
+      .sort((left, right) => new Date(left).getTime() - new Date(right).getTime());
+  }
+
+  if (Array.isArray(analytics?.clicks)) {
+    return analytics.clicks
+      .map((click) => {
+        if (typeof click === 'string') {
+          return click;
+        }
+
+        return click?.createdAt || click?.timestamp || click?.clickedAt || null;
+      })
+      .filter((timestamp) => typeof timestamp === 'string' && timestamp.trim())
+      .sort((left, right) => new Date(left).getTime() - new Date(right).getTime());
+  }
+
+  return [];
 }
 
 function buildDailyBuckets(clickTimestamps = []) {
@@ -93,11 +118,14 @@ function buildDailyBuckets(clickTimestamps = []) {
 
 export default function AnalyticsPanel({
   analytics,
+  selectedLink,
   className = '',
   emptyMessage = 'Select a link to inspect its analytics.',
   errorMessage = '',
   isLoading = false,
 }) {
+  const detail = analytics || selectedLink;
+
   if (isLoading) {
     return <section className={className}>Loading analytics...</section>;
   }
@@ -110,14 +138,12 @@ export default function AnalyticsPanel({
     );
   }
 
-  if (!analytics) {
+  if (!detail) {
     return <section className={className}>{emptyMessage}</section>;
   }
 
-  const totalClicks = getTotalClicks(analytics);
-  const clickTimestamps = Array.isArray(analytics.clickTimestamps)
-    ? analytics.clickTimestamps
-    : [];
+  const totalClicks = getTotalClicks(detail);
+  const clickTimestamps = getClickTimestamps(detail);
   const latestClick = clickTimestamps[clickTimestamps.length - 1] || null;
   const dailyBuckets = buildDailyBuckets(clickTimestamps);
   const peakCount = dailyBuckets.reduce(
@@ -129,10 +155,10 @@ export default function AnalyticsPanel({
     <section className={className} aria-label="Analytics detail">
       <header>
         <p>Analytics overview</p>
-        <h2>{analytics.title || analytics.slug || 'Untitled link'}</h2>
+        <h2>{detail.title || detail.slug || 'Untitled link'}</h2>
         <p>
-          <a href={analytics.url} target="_blank" rel="noreferrer">
-            {analytics.url}
+          <a href={detail.url} target="_blank" rel="noreferrer">
+            {detail.url}
           </a>
         </p>
       </header>
@@ -150,17 +176,17 @@ export default function AnalyticsPanel({
 
         <article>
           <p>Created</p>
-          <strong>{formatDateTime(analytics.createdAt)}</strong>
+          <strong>{formatDateTime(detail.createdAt)}</strong>
         </article>
       </div>
 
       <div>
-        <p>Short code: <code>{analytics.slug || 'Unavailable'}</code></p>
-        <p>Updated: {formatDateTime(analytics.updatedAt)}</p>
+        <p>Short code: <code>{detail.slug || 'Unavailable'}</code></p>
+        <p>Updated: {formatDateTime(detail.updatedAt)}</p>
         <p>
           Tags:{' '}
-          {analytics.tags?.length
-            ? analytics.tags.join(', ')
+          {detail.tags?.length
+            ? detail.tags.join(', ')
             : 'No tags'}
         </p>
       </div>
@@ -209,13 +235,15 @@ export default function AnalyticsPanel({
       </section>
 
       <section aria-label="Latest click timestamps">
-        <h3>Latest clicks</h3>
+        <h3>Click timestamps</h3>
 
         {clickTimestamps.length ? (
           <ol>
-            {[...clickTimestamps].reverse().slice(0, 5).map((timestamp) => (
+            {[...clickTimestamps].reverse().map((timestamp, index) => (
               <li key={timestamp}>
-                <time dateTime={timestamp}>{formatDateTime(timestamp)}</time>
+                <time dateTime={timestamp}>
+                  {index === 0 ? `Most recent: ${formatDateTime(timestamp)}` : formatDateTime(timestamp)}
+                </time>
               </li>
             ))}
           </ol>
