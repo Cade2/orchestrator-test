@@ -158,8 +158,8 @@ router.get('/clicks', (_req, res) => {
   res.json({ data: listClickEvents() });
 });
 
-router.get('/r/:slug', (req, res) => {
-  const link = getLinkBySlug(req.params.slug);
+router.get('/r/:code', (req, res) => {
+  const link = getLinkBySlug(req.params.code);
 
   if (!link) {
     return res.status(404).json({ error: 'link not found' });
@@ -171,6 +171,7 @@ router.get('/r/:slug', (req, res) => {
     referrer: req.get('referer') || null,
     ipAddress: req.ip || null,
     userAgent: req.get('user-agent') || null,
+    createdAt: new Date().toISOString(),
   });
 
   return res.redirect(link.url);
