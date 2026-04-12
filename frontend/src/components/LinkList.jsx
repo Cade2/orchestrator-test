@@ -1,28 +1,15 @@
 import { getRedirectUrl } from '../api';
 
-function formatDate(value) {
-  if (!value) {
-    return null;
+function getTotalClicks(link) {
+  if (typeof link.totalClicks === 'number') {
+    return link.totalClicks;
   }
 
-  const parsedDate = new Date(value);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return null;
+  if (typeof link.clickCount === 'number') {
+    return link.clickCount;
   }
 
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(parsedDate);
-}
-
-function normalizeTags(tags) {
-  return Array.isArray(tags) ? tags.filter(Boolean) : [];
-}
-
-function renderCountLabel(count) {
-  return `${count} click${count === 1 ? '' : 's'}`;
+  return 0;
 }
 
 export default function LinkList({
@@ -51,34 +38,27 @@ export default function LinkList({
   return (
     <ul className={className}>
       {links.map((link) => {
-        const tags = normalizeTags(link.tags);
-        const createdAt = formatDate(link.createdAt);
         const shortUrl = getRedirectUrl(link.slug);
+        const totalClicks = getTotalClicks(link);
 
         return (
           <li key={link.id || link.slug}>
             <article>
               <p>
-                <a href={shortUrl} target="_blank" rel="noreferrer">
-                  {link.slug}
-                </a>
-              </p>
-
-              {link.title ? <h2>{link.title}</h2> : null}
-
-              <p>
+                Original URL:{' '}
                 <a href={link.url} target="_blank" rel="noreferrer">
                   {link.url}
                 </a>
               </p>
 
-              <p>{renderCountLabel(link.clickCount || 0)}</p>
+              <p>
+                Short URL:{' '}
+                <a href={shortUrl} target="_blank" rel="noreferrer">
+                  {shortUrl}
+                </a>
+              </p>
 
-              {createdAt ? <p>Created {createdAt}</p> : null}
-
-              {tags.length ? (
-                <p>Tags: {tags.join(', ')}</p>
-              ) : null}
+              <p>Total clicks: {totalClicks}</p>
             </article>
           </li>
         );
