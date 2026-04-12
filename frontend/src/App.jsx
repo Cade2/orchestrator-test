@@ -18,6 +18,7 @@ export default function App() {
   const [links, setLinks] = useState([]);
   const [linksErrorMessage, setLinksErrorMessage] = useState('');
   const [isLoadingLinks, setIsLoadingLinks] = useState(true);
+  const [hasLoadedInitialLinks, setHasLoadedInitialLinks] = useState(false);
   const [selectedLinkId, setSelectedLinkId] = useState(null);
   const [selectedLinkAnalytics, setSelectedLinkAnalytics] = useState(null);
   const [analyticsErrorMessage, setAnalyticsErrorMessage] = useState('');
@@ -67,6 +68,7 @@ export default function App() {
     } finally {
       if (isMountedRef.current) {
         setIsLoadingLinks(false);
+        setHasLoadedInitialLinks(true);
       }
     }
   }
@@ -83,6 +85,7 @@ export default function App() {
     () => links.find((link) => getLinkKey(link) === selectedLinkId) || null,
     [links, selectedLinkId],
   );
+  const isInitialLinksLoad = isLoadingLinks && !hasLoadedInitialLinks;
 
   async function loadAnalytics(link) {
     const analyticsLookupValue = getAnalyticsLookupValue(link);
@@ -163,11 +166,13 @@ export default function App() {
               <LinkForm className="link-form" onSubmit={handleCreateLink} />
             </section>
 
-            <section className="panel">
+            <section className="panel" aria-busy={isInitialLinksLoad}>
               <p className="eyebrow">Saved Links</p>
               <h2>Link library</h2>
               <p className="copy">
-                Choose a link to load its analytics snapshot.
+                {isInitialLinksLoad
+                  ? 'Loading your saved links from the API.'
+                  : 'Choose a link to load its analytics snapshot.'}
               </p>
               <LinkList
                 className="link-list"
@@ -184,17 +189,24 @@ export default function App() {
           </section>
 
           <aside className="app-sidebar">
-            <section className="panel">
+            <section className="panel" aria-busy={isInitialLinksLoad || isLoadingAnalytics}>
               <p className="eyebrow">Analytics</p>
               <h2>Selected link</h2>
               <p className="copy">
-                The analytics panel stores the latest fetched detail for the current selection.
+                {isInitialLinksLoad
+                  ? 'Waiting for the initial link list before analytics can be shown.'
+                  : 'The analytics panel stores the latest fetched detail for the current selection.'}
               </p>
               <AnalyticsPanel
                 className="analytics-panel"
                 selectedLink={selectedLink}
                 analytics={selectedLinkAnalytics}
                 isLoading={isLoadingAnalytics}
+                emptyMessage={
+                  isInitialLinksLoad
+                    ? 'Loading saved links...'
+                    : 'Select a link to inspect its analytics.'
+                }
                 errorMessage={analyticsErrorMessage}
               />
             </section>
