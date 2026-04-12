@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { fetchAllLinks, fetchLinkAnalytics } from './api';
+import { createLink, fetchAllLinks, fetchLinkAnalytics } from './api';
 import AnalyticsPanel from './components/AnalyticsPanel';
 import LinkForm from './components/LinkForm';
 import LinkList from './components/LinkList';
@@ -14,6 +14,7 @@ function getAnalyticsLookupValue(link) {
 }
 
 export default function App() {
+  const isMountedRef = useRef(true);
   const [links, setLinks] = useState([]);
   const [linksErrorMessage, setLinksErrorMessage] = useState('');
   const [isLoadingLinks, setIsLoadingLinks] = useState(true);
@@ -22,54 +23,58 @@ export default function App() {
   const [analyticsErrorMessage, setAnalyticsErrorMessage] = useState('');
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
 
-  useEffect(() => {
-    let isActive = true;
-
-    async function loadLinks() {
-      setIsLoadingLinks(true);
-      setLinksErrorMessage('');
-
-      try {
-        const loadedLinks = await fetchAllLinks();
-
-        if (!isActive) {
-          return;
-        }
-
-        setLinks(Array.isArray(loadedLinks) ? loadedLinks : []);
-        setSelectedLinkId((currentSelectedLinkId) => {
-          if (!loadedLinks?.length) {
-            return null;
-          }
-
-          const hasCurrentSelection = loadedLinks.some(
-            (link) => getLinkKey(link) === currentSelectedLinkId,
-          );
-
-          return hasCurrentSelection
-            ? currentSelectedLinkId
-            : getLinkKey(loadedLinks[0]);
-        });
-      } catch (error) {
-        if (!isActive) {
-          return;
-        }
-
-        setLinks([]);
-        setSelectedLinkId(null);
-        setSelectedLinkAnalytics(null);
-        setLinksErrorMessage(error.message || 'Unable to load links.');
-      } finally {
-        if (isActive) {
-          setIsLoadingLinks(false);
-        }
-      }
+  async function loadLinks(preferredSelectedLinkId = null) {
+    if (!isMountedRef.current) {
+      return [];
     }
 
-    loadLinks();
+    setIsLoadingLinks(true);
+    setLinksErrorMessage('');
+
+    try {
+      const loadedLinks = await fetchAllLinks();
+
+      if (!isMountedRef.current) {
+        return loadedLinks;
+      }
+
+      setLinks(Array.isArray(loadedLinks) ? loadedLinks : []);
+      setSelectedLinkId((currentSelectedLinkId) => {
+        if (!loadedLinks?.length) {
+          return null;
+        }
+
+        const nextSelectedLinkId = preferredSelectedLinkId ?? currentSelectedLinkId;
+        const hasSelectedLink = loadedLinks.some(
+          (link) => getLinkKey(link) === nextSelectedLinkId,
+        );
+
+        return hasSelectedLink ? nextSelectedLinkId : getLinkKey(loadedLinks[0]);
+      });
+
+      return loadedLinks;
+    } catch (error) {
+      if (!isMountedRef.current) {
+        throw error;
+      }
+
+      setLinks([]);
+      setSelectedLinkId(null);
+      setSelectedLinkAnalytics(null);
+      setLinksErrorMessage(error.message || 'Unable to load links.');
+      throw error;
+    } finally {
+      if (isMountedRef.current) {
+        setIsLoadingLinks(false);
+      }
+    }
+  }
+
+  useEffect(() => {
+    loadLinks().catch(() => {});
 
     return () => {
-      isActive = false;
+      isMountedRef.current = false;
     };
   }, []);
 
@@ -124,13 +129,10 @@ export default function App() {
     setSelectedLinkId(getLinkKey(link));
   }
 
-  function handleLinkCreated(createdLink) {
-    setLinks((currentLinks) => {
-      const createdLinkKey = getLinkKey(createdLink);
-      const nextLinks = currentLinks.filter((link) => getLinkKey(link) !== createdLinkKey);
-      return [createdLink, ...nextLinks];
-    });
-    setSelectedLinkId(getLinkKey(createdLink));
+  async function handleCreateLink(linkInput) {
+    const createdLink = await createLink(linkInput);
+    await loadLinks(getLinkKey(createdLink));
+    return createdLink;
   }
 
   return (
@@ -151,9 +153,9 @@ export default function App() {
               <p className="eyebrow">Create Link</p>
               <h2>Publish a short link</h2>
               <p className="copy">
-                New links are added to local state immediately and selected for analytics.
+                Successful submissions refresh the saved link list and select the new link.
               </p>
-              <LinkForm className="link-form" onCreated={handleLinkCreated} />
+              <LinkForm className="link-form" onSubmit={handleCreateLink} />
             </section>
 
             <section className="panel">

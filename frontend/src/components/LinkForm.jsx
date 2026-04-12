@@ -47,7 +47,7 @@ function buildPayload(values) {
 export default function LinkForm({
   className = '',
   initialValues,
-  onCreated,
+  onSubmit,
   submitLabel = 'Create Link',
 }) {
   const [values, setValues] = useState(() => normalizeInitialValues(initialValues));
@@ -98,14 +98,13 @@ export default function LinkForm({
     setSuccessMessage('');
 
     try {
-      const createdLink = await createLink(buildPayload(values));
+      const payload = buildPayload(values);
+      const createdLink = typeof onSubmit === 'function'
+        ? await onSubmit(payload)
+        : await createLink(payload);
 
       setSuccessMessage(`Link created with short code ${createdLink.slug}.`);
       setValues({ ...DEFAULT_FORM_VALUES });
-
-      if (typeof onCreated === 'function') {
-        onCreated(createdLink);
-      }
     } catch (error) {
       setErrorMessage(error.message || 'Unable to create link.');
     } finally {
