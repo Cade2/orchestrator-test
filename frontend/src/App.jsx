@@ -15,6 +15,7 @@ function getAnalyticsLookupValue(link) {
 
 export default function App() {
   const isMountedRef = useRef(true);
+  const lastAnalyticsRequestRef = useRef(null);
   const [links, setLinks] = useState([]);
   const [linksErrorMessage, setLinksErrorMessage] = useState('');
   const [isLoadingLinks, setIsLoadingLinks] = useState(true);
@@ -83,50 +84,56 @@ export default function App() {
     [links, selectedLinkId],
   );
 
-  useEffect(() => {
-    let isActive = true;
-    const analyticsLookupValue = getAnalyticsLookupValue(selectedLink);
+  async function loadAnalytics(link) {
+    const analyticsLookupValue = getAnalyticsLookupValue(link);
+
+    lastAnalyticsRequestRef.current = analyticsLookupValue;
 
     if (!analyticsLookupValue) {
       setSelectedLinkAnalytics(null);
       setAnalyticsErrorMessage('');
       setIsLoadingAnalytics(false);
-      return () => {
-        isActive = false;
-      };
+      return;
     }
 
-    async function loadAnalytics() {
-      setIsLoadingAnalytics(true);
-      setAnalyticsErrorMessage('');
+    setIsLoadingAnalytics(true);
+    setAnalyticsErrorMessage('');
 
-      try {
-        const analytics = await fetchLinkAnalytics(analyticsLookupValue);
+    try {
+      const analytics = await fetchLinkAnalytics(analyticsLookupValue);
 
-        if (isActive) {
-          setSelectedLinkAnalytics(analytics);
-        }
-      } catch (error) {
-        if (isActive) {
-          setSelectedLinkAnalytics(null);
-          setAnalyticsErrorMessage(error.message || 'Unable to load link analytics.');
-        }
-      } finally {
-        if (isActive) {
-          setIsLoadingAnalytics(false);
-        }
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      setSelectedLinkAnalytics(analytics);
+    } catch (error) {
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      setSelectedLinkAnalytics(null);
+      setAnalyticsErrorMessage(error.message || 'Unable to load link analytics.');
+    } finally {
+      if (isMountedRef.current) {
+        setIsLoadingAnalytics(false);
       }
     }
+  }
 
-    loadAnalytics();
+  useEffect(() => {
+    const analyticsLookupValue = getAnalyticsLookupValue(selectedLink);
 
-    return () => {
-      isActive = false;
-    };
+    if (analyticsLookupValue && lastAnalyticsRequestRef.current === analyticsLookupValue) {
+      return;
+    }
+
+    loadAnalytics(selectedLink).catch(() => {});
   }, [selectedLink]);
 
-  function handleSelectLink(link) {
+  async function handleSelectLink(link) {
     setSelectedLinkId(getLinkKey(link));
+    await loadAnalytics(link);
   }
 
   async function handleCreateLink(linkInput) {
