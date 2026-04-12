@@ -34,6 +34,10 @@ async function request(path, options = {}) {
   return payload;
 }
 
+function unwrapData(promise) {
+  return promise.then((payload) => payload?.data ?? payload);
+}
+
 export function getApiBaseUrl() {
   return API_BASE_URL;
 }
@@ -42,19 +46,29 @@ export function getHealth() {
   return request('/health');
 }
 
-export function listLinks() {
-  return request('/links');
+export function fetchAllLinks() {
+  return unwrapData(request('/links'));
 }
 
 export function createLink(link) {
-  return request('/links', {
-    method: 'POST',
-    body: link,
-  });
+  return unwrapData(
+    request('/links', {
+      method: 'POST',
+      body: link,
+    }),
+  );
+}
+
+export function fetchLinkAnalytics(codeOrId) {
+  return unwrapData(request(`/links/${encodeURIComponent(codeOrId)}`));
+}
+
+export function listLinks() {
+  return fetchAllLinks();
 }
 
 export function getLink(codeOrId) {
-  return request(`/links/${encodeURIComponent(codeOrId)}`);
+  return fetchLinkAnalytics(codeOrId);
 }
 
 export function updateLink(linkId, updates) {
@@ -86,8 +100,10 @@ const api = {
   request,
   getApiBaseUrl,
   getHealth,
+  fetchAllLinks,
   listLinks,
   createLink,
+  fetchLinkAnalytics,
   getLink,
   updateLink,
   deleteLink,
