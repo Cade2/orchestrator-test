@@ -13,6 +13,42 @@ const {
 } = require('./store');
 
 const router = Router();
+const SHORT_CODE_LENGTH = 8;
+const SHORT_CODE_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+function generateShortCode(length = SHORT_CODE_LENGTH) {
+  let shortCode = '';
+
+  for (let index = 0; index < length; index += 1) {
+    const randomIndex = Math.floor(Math.random() * SHORT_CODE_ALPHABET.length);
+    shortCode += SHORT_CODE_ALPHABET[randomIndex];
+  }
+
+  return shortCode;
+}
+
+function isValidHttpUrl(value) {
+  if (typeof value !== 'string' || !value.trim()) {
+    return false;
+  }
+
+  try {
+    const parsedUrl = new URL(value);
+    return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+  } catch (_error) {
+    return false;
+  }
+}
+
+function createUniqueShortCode() {
+  let shortCode = generateShortCode();
+
+  while (getLinkBySlug(shortCode)) {
+    shortCode = generateShortCode();
+  }
+
+  return shortCode;
+}
 
 function normalizeLinkInput(body = {}) {
   return {
@@ -34,11 +70,24 @@ router.get('/links', (_req, res) => {
 router.post('/links', (req, res) => {
   const input = normalizeLinkInput(req.body);
 
-  if (!input.url) {
+  if (!input.url.trim()) {
     return res.status(400).json({ error: 'url is required' });
   }
 
-  const link = createLink(input);
+  if (!isValidHttpUrl(input.url)) {
+    return res.status(400).json({ error: 'url must be a valid http or https URL' });
+  }
+
+  if (input.slug && getLinkBySlug(input.slug)) {
+    return res.status(409).json({ error: 'short code already exists' });
+  }
+
+  const link = createLink({
+    ...input,
+    url: input.url.trim(),
+    slug: input.slug || createUniqueShortCode(),
+  });
+
   return res.status(201).json({ data: link });
 });
 
