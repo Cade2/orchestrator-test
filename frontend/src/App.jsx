@@ -15,7 +15,6 @@ function getAnalyticsLookupValue(link) {
 
 export default function App() {
   const isMountedRef = useRef(true);
-  const lastAnalyticsRequestRef = useRef(null);
   const [links, setLinks] = useState([]);
   const [linksErrorMessage, setLinksErrorMessage] = useState('');
   const [isLoadingLinks, setIsLoadingLinks] = useState(true);
@@ -23,6 +22,7 @@ export default function App() {
   const [selectedLinkAnalytics, setSelectedLinkAnalytics] = useState(null);
   const [analyticsErrorMessage, setAnalyticsErrorMessage] = useState('');
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+  const [analyticsTargetLinkId, setAnalyticsTargetLinkId] = useState(null);
 
   async function loadLinks(preferredSelectedLinkId = null) {
     if (!isMountedRef.current) {
@@ -86,18 +86,19 @@ export default function App() {
 
   async function loadAnalytics(link) {
     const analyticsLookupValue = getAnalyticsLookupValue(link);
-
-    lastAnalyticsRequestRef.current = analyticsLookupValue;
+    const targetLinkId = getLinkKey(link);
 
     if (!analyticsLookupValue) {
       setSelectedLinkAnalytics(null);
       setAnalyticsErrorMessage('');
       setIsLoadingAnalytics(false);
+      setAnalyticsTargetLinkId(null);
       return;
     }
 
     setIsLoadingAnalytics(true);
     setAnalyticsErrorMessage('');
+    setAnalyticsTargetLinkId(targetLinkId);
 
     try {
       const analytics = await fetchLinkAnalytics(analyticsLookupValue);
@@ -117,21 +118,18 @@ export default function App() {
     } finally {
       if (isMountedRef.current) {
         setIsLoadingAnalytics(false);
+        setAnalyticsTargetLinkId(null);
       }
     }
   }
 
-  useEffect(() => {
-    const analyticsLookupValue = getAnalyticsLookupValue(selectedLink);
+  function handleSelectLink(link) {
+    setSelectedLinkId(getLinkKey(link));
+    setSelectedLinkAnalytics(null);
+    setAnalyticsErrorMessage('');
+  }
 
-    if (analyticsLookupValue && lastAnalyticsRequestRef.current === analyticsLookupValue) {
-      return;
-    }
-
-    loadAnalytics(selectedLink).catch(() => {});
-  }, [selectedLink]);
-
-  async function handleSelectLink(link) {
+  async function handleLoadAnalytics(link) {
     setSelectedLinkId(getLinkKey(link));
     await loadAnalytics(link);
   }
@@ -177,7 +175,10 @@ export default function App() {
                 isLoading={isLoadingLinks}
                 errorMessage={linksErrorMessage}
                 selectedLinkId={selectedLinkId}
+                isLoadingAnalytics={isLoadingAnalytics}
+                analyticsTargetLinkId={analyticsTargetLinkId}
                 onSelect={handleSelectLink}
+                onLoadAnalytics={handleLoadAnalytics}
               />
             </section>
           </section>

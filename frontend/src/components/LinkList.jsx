@@ -16,8 +16,11 @@ export default function LinkList({
   className = '',
   emptyMessage = 'No links yet.',
   errorMessage = '',
+  analyticsTargetLinkId = null,
+  isLoadingAnalytics = false,
   isLoading = false,
   links = [],
+  onLoadAnalytics,
   onSelect,
   selectedLinkId = null,
 }) {
@@ -44,6 +47,7 @@ export default function LinkList({
         const totalClicks = getTotalClicks(link);
         const linkKey = link.id || link.slug;
         const isSelected = linkKey === selectedLinkId;
+        const isLoadingRowAnalytics = isLoadingAnalytics && linkKey === analyticsTargetLinkId;
 
         return (
           <li key={linkKey}>
@@ -67,11 +71,23 @@ export default function LinkList({
 
               <p>Total clicks: {totalClicks}</p>
 
-              {typeof onSelect === 'function' ? (
-                <button type="button" onClick={() => onSelect(link)}>
-                  {isSelected ? 'Viewing analytics' : 'View analytics'}
-                </button>
-              ) : null}
+              <div className="link-list__actions">
+                {typeof onSelect === 'function' ? (
+                  <button type="button" onClick={() => onSelect(link)}>
+                    {isSelected ? 'Selected link' : 'Select link'}
+                  </button>
+                ) : null}
+
+                {typeof onLoadAnalytics === 'function' ? (
+                  <button
+                    type="button"
+                    onClick={() => onLoadAnalytics(link)}
+                    disabled={isLoadingRowAnalytics}
+                  >
+                    {isLoadingRowAnalytics ? 'Loading analytics...' : 'Load analytics'}
+                  </button>
+                ) : null}
+              </div>
             </article>
           </li>
         );

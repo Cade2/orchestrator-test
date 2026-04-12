@@ -366,6 +366,16 @@ ul.link-list > li > article button,
   min-width: 0;
 }
 
+.link-list__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.link-list__actions button {
+  margin-top: 16px;
+}
+
 ul > li > article:hover,
 ul.link-list > li > article:hover,
 .link-list > li > article:hover {
@@ -536,5 +546,9 @@ section[aria-label="Analytics detail"] time {
 
   button {
     width: 100%;
+  }
+
+  .link-list__actions {
+    flex-direction: column;
   }
 }
