@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { createLink } from '../api';
 
@@ -55,6 +55,10 @@ export default function LinkForm({
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    setValues(normalizeInitialValues(initialValues));
+  }, [initialValues]);
+
   function handleChange(event) {
     const { name, value } = event.target;
 
@@ -62,6 +66,14 @@ export default function LinkForm({
       ...currentValues,
       [name]: value,
     }));
+
+    if (errorMessage) {
+      setErrorMessage('');
+    }
+
+    if (successMessage) {
+      setSuccessMessage('');
+    }
   }
 
   async function handleSubmit(event) {
@@ -115,6 +127,7 @@ export default function LinkForm({
           value={values.url}
           onChange={handleChange}
           disabled={isSubmitting}
+          aria-invalid={errorMessage ? 'true' : 'false'}
           required
         />
       </div>
@@ -161,11 +174,11 @@ export default function LinkForm({
       </div>
 
       {errorMessage ? (
-        <p role="alert">{errorMessage}</p>
+        <p id="link-form-feedback" role="alert">{errorMessage}</p>
       ) : null}
 
       {successMessage ? (
-        <p>{successMessage}</p>
+        <p id="link-form-feedback">{successMessage}</p>
       ) : null}
 
       <button type="submit" disabled={isSubmitting}>
