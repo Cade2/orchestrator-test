@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { createLink, fetchAllLinks, fetchLinkAnalytics } from './api';
+import {
+  createLink,
+  fetchAllLinks,
+  fetchLinkAnalytics,
+  getApiBaseUrl,
+} from './api';
 import AnalyticsPanel from './components/AnalyticsPanel';
 import LinkForm from './components/LinkForm';
 import LinkList from './components/LinkList';
@@ -11,6 +16,37 @@ function getLinkKey(link) {
 
 function getAnalyticsLookupValue(link) {
   return link?.slug || link?.id || null;
+}
+
+function formatRequestError(error, resourceLabel) {
+  const backendMessage = typeof error?.payload?.error === 'string'
+    ? error.payload.error.trim()
+    : '';
+  const genericMessage = typeof error?.message === 'string'
+    ? error.message.trim()
+    : '';
+
+  if (backendMessage) {
+    const statusPrefix = typeof error?.status === 'number'
+      ? `Backend error (${error.status})`
+      : 'Backend error';
+
+    return `${statusPrefix}: ${backendMessage}`;
+  }
+
+  if (/failed to fetch|networkerror|load failed/i.test(genericMessage)) {
+    return `Network error: unable to load ${resourceLabel} from ${getApiBaseUrl()}.`;
+  }
+
+  if (typeof error?.status === 'number' && genericMessage) {
+    return `Backend error (${error.status}): ${genericMessage}`;
+  }
+
+  if (genericMessage) {
+    return genericMessage;
+  }
+
+  return `Unable to load ${resourceLabel}.`;
 }
 
 export default function App() {
@@ -64,7 +100,7 @@ export default function App() {
       setLinks([]);
       setSelectedLinkId(null);
       setSelectedLinkAnalytics(null);
-      setLinksErrorMessage(error.message || 'Unable to load links.');
+      setLinksErrorMessage(formatRequestError(error, 'saved links'));
       throw error;
     } finally {
       if (isMountedRef.current) {
@@ -122,7 +158,7 @@ export default function App() {
       }
 
       setSelectedLinkAnalytics(null);
-      setAnalyticsErrorMessage(error.message || 'Unable to load link analytics.');
+      setAnalyticsErrorMessage(formatRequestError(error, 'link analytics'));
     } finally {
       if (isMountedRef.current && analyticsRequestIdRef.current === requestId) {
         setIsLoadingAnalytics(false);
@@ -179,17 +215,20 @@ export default function App() {
                   ? 'Loading your saved links from the API.'
                   : 'Choose a link to load its analytics snapshot.'}
               </p>
-              <LinkList
-                className="link-list"
-                links={links}
-                isLoading={isLoadingLinks}
-                errorMessage={linksErrorMessage}
-                selectedLinkId={selectedLinkId}
-                isLoadingAnalytics={isLoadingAnalytics}
-                analyticsTargetLinkId={analyticsTargetLinkId}
-                onSelect={handleSelectLink}
-                onLoadAnalytics={handleLoadAnalytics}
-              />
+              {linksErrorMessage ? (
+                <p role="alert">{linksErrorMessage}</p>
+              ) : (
+                <LinkList
+                  className="link-list"
+                  links={links}
+                  isLoading={isLoadingLinks}
+                  selectedLinkId={selectedLinkId}
+                  isLoadingAnalytics={isLoadingAnalytics}
+                  analyticsTargetLinkId={analyticsTargetLinkId}
+                  onSelect={handleSelectLink}
+                  onLoadAnalytics={handleLoadAnalytics}
+                />
+              )}
             </section>
           </section>
 
@@ -202,6 +241,9 @@ export default function App() {
                   ? 'Waiting for the initial link list before analytics can be shown.'
                   : 'The analytics panel stores the latest fetched detail for the current selection.'}
               </p>
+              {analyticsErrorMessage ? (
+                <p role="alert">{analyticsErrorMessage}</p>
+              ) : null}
               <AnalyticsPanel
                 className="analytics-panel"
                 selectedLink={selectedLink}
@@ -212,7 +254,6 @@ export default function App() {
                     ? 'Loading saved links...'
                     : 'Select a link to inspect its analytics.'
                 }
-                errorMessage={analyticsErrorMessage}
               />
             </section>
           </aside>
