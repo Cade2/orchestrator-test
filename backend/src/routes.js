@@ -78,7 +78,13 @@ router.get('/links', (_req, res) => {
   }, new Map());
 
   const links = listLinks().map((link) => ({
-    ...link,
+    id: link.id,
+    url: link.url,
+    slug: link.slug,
+    title: link.title,
+    tags: link.tags,
+    createdAt: link.createdAt,
+    updatedAt: link.updatedAt,
     clickCount: clickCountByLinkId.get(link.id) || 0,
   }));
 
