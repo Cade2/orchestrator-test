@@ -44,6 +44,19 @@ function buildPayload(values) {
   };
 }
 
+function validateValues(values) {
+  const errors = {};
+  const trimmedUrl = values.url.trim();
+
+  if (!trimmedUrl) {
+    errors.url = 'Enter a destination URL.';
+  } else if (!isValidHttpUrl(trimmedUrl)) {
+    errors.url = 'Use a valid http or https URL.';
+  }
+
+  return errors;
+}
+
 export default function LinkForm({
   className = '',
   initialValues,
@@ -51,51 +64,69 @@ export default function LinkForm({
   submitLabel = 'Create Link',
 }) {
   const [values, setValues] = useState(() => normalizeInitialValues(initialValues));
-  const [errorMessage, setErrorMessage] = useState('');
+  const [validationErrors, setValidationErrors] = useState({});
+  const [submissionErrorMessage, setSubmissionErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setValues(normalizeInitialValues(initialValues));
+    setValidationErrors({});
+    setSubmissionErrorMessage('');
+    setSuccessMessage('');
   }, [initialValues]);
 
   function handleChange(event) {
     const { name, value } = event.target;
 
-    setValues((currentValues) => ({
-      ...currentValues,
-      [name]: value,
-    }));
+    setValues((currentValues) => {
+      const nextValues = {
+        ...currentValues,
+        [name]: value,
+      };
 
-    if (errorMessage) {
-      setErrorMessage('');
-    }
+      if (validationErrors[name]) {
+        setValidationErrors((currentErrors) => ({
+          ...currentErrors,
+          [name]: validateValues(nextValues)[name],
+        }));
+      }
+
+      return nextValues;
+    });
 
     if (successMessage) {
       setSuccessMessage('');
     }
+
+    if (submissionErrorMessage) {
+      setSubmissionErrorMessage('');
+    }
+  }
+
+  function handleBlur(event) {
+    const { name } = event.target;
+    const nextFieldError = validateValues(values)[name];
+
+    setValidationErrors((currentErrors) => ({
+      ...currentErrors,
+      [name]: nextFieldError,
+    }));
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
 
-    const trimmedUrl = values.url.trim();
+    const nextValidationErrors = validateValues(values);
+    setValidationErrors(nextValidationErrors);
+    setSubmissionErrorMessage('');
+    setSuccessMessage('');
 
-    if (!trimmedUrl) {
-      setErrorMessage('Enter a destination URL.');
-      setSuccessMessage('');
-      return;
-    }
-
-    if (!isValidHttpUrl(trimmedUrl)) {
-      setErrorMessage('Use a valid http or https URL.');
-      setSuccessMessage('');
+    if (Object.values(nextValidationErrors).some(Boolean)) {
       return;
     }
 
     setIsSubmitting(true);
-    setErrorMessage('');
-    setSuccessMessage('');
 
     try {
       const payload = buildPayload(values);
@@ -105,8 +136,9 @@ export default function LinkForm({
 
       setSuccessMessage(`Link created with short code ${createdLink.slug}.`);
       setValues({ ...DEFAULT_FORM_VALUES });
+      setValidationErrors({});
     } catch (error) {
-      setErrorMessage(error.message || 'Unable to create link.');
+      setSubmissionErrorMessage(error.message || 'Unable to create link.');
     } finally {
       setIsSubmitting(false);
     }
@@ -125,10 +157,15 @@ export default function LinkForm({
           autoComplete="url"
           value={values.url}
           onChange={handleChange}
+          onBlur={handleBlur}
           disabled={isSubmitting}
-          aria-invalid={errorMessage ? 'true' : 'false'}
+          aria-invalid={validationErrors.url ? 'true' : 'false'}
+          aria-describedby={validationErrors.url ? 'link-form-url-error' : undefined}
           required
         />
+        {validationErrors.url ? (
+          <p id="link-form-url-error" role="alert">{validationErrors.url}</p>
+        ) : null}
       </div>
 
       <div>
@@ -142,6 +179,7 @@ export default function LinkForm({
           autoCorrect="off"
           value={values.slug}
           onChange={handleChange}
+          onBlur={handleBlur}
           disabled={isSubmitting}
         />
       </div>
@@ -155,6 +193,7 @@ export default function LinkForm({
           placeholder="Optional label for this link"
           value={values.title}
           onChange={handleChange}
+          onBlur={handleBlur}
           disabled={isSubmitting}
         />
       </div>
@@ -168,12 +207,13 @@ export default function LinkForm({
           placeholder="marketing, campaign, q2"
           value={values.tags}
           onChange={handleChange}
+          onBlur={handleBlur}
           disabled={isSubmitting}
         />
       </div>
 
-      {errorMessage ? (
-        <p id="link-form-feedback" role="alert">{errorMessage}</p>
+      {submissionErrorMessage ? (
+        <p id="link-form-feedback" role="alert">{submissionErrorMessage}</p>
       ) : null}
 
       {successMessage ? (
