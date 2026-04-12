@@ -105,14 +105,22 @@ router.post('/links', (req, res) => {
   return res.status(201).json({ data: link });
 });
 
-router.get('/links/:linkId', (req, res) => {
-  const link = getLinkById(req.params.linkId);
+router.get('/links/:code', (req, res) => {
+  const link = getLinkBySlug(req.params.code) || getLinkById(req.params.code);
 
   if (!link) {
     return res.status(404).json({ error: 'link not found' });
   }
 
-  return res.json({ data: link });
+  const clickEvents = listClickEventsByLinkId(link.id);
+
+  return res.json({
+    data: {
+      ...link,
+      clickTimestamps: clickEvents.map((clickEvent) => clickEvent.createdAt),
+      totalClicks: clickEvents.length,
+    },
+  });
 });
 
 router.patch('/links/:linkId', (req, res) => {
