@@ -21,8 +21,9 @@ function isValidVin(vin: string): boolean {
 
 export function NewInspectionPage(): JSX.Element {
   const [form, setForm] = useState<NewInspectionForm>(initialState);
-  const [error, setError] = useState<string>('');
   const [message, setMessage] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof NewInspectionForm, string>>>({});
 
   function onChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>): void {
     const { name, value } = event.target;
@@ -32,27 +33,40 @@ export function NewInspectionPage(): JSX.Element {
     }
 
     setForm((current) => ({ ...current, [name]: value }));
-    setError('');
+    setFieldErrors((current) => ({ ...current, [name]: '' }));
     setMessage('');
   }
 
-  function onSubmit(event: FormEvent<HTMLFormElement>): void {
+  async function onSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
     const vin = form.vin.trim().toUpperCase();
     const customerName = form.customerName.trim();
+    const nextFieldErrors: Partial<Record<keyof NewInspectionForm, string>> = {};
 
-    if (!vin || !customerName) {
-      setError('VIN and customer name are required.');
+    if (!vin) {
+      nextFieldErrors.vin = 'VIN is required.';
+    } else if (!isValidVin(vin)) {
+      nextFieldErrors.vin = 'VIN must contain 17 valid alphanumeric characters.';
+    }
+
+    if (!customerName) {
+      nextFieldErrors.customerName = 'Customer name is required.';
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
       return;
     }
 
-    if (!isValidVin(vin)) {
-      setError('VIN must contain 17 valid alphanumeric characters.');
-      return;
-    }
+    setFieldErrors({});
+    setIsSubmitting(true);
+    await new Promise((resolve) => {
+      window.setTimeout(resolve, 350);
+    });
 
     setForm(initialState);
+    setIsSubmitting(false);
     setMessage(`Inspection for ${customerName} (${vin}) is ready to be submitted to the backend API.`);
   }
 
@@ -61,6 +75,7 @@ export function NewInspectionPage(): JSX.Element {
       <form className="form-grid" noValidate onSubmit={onSubmit}>
         <label htmlFor="vin">Vehicle VIN</label>
         <input
+          className={fieldErrors.vin ? 'is-invalid' : undefined}
           id="vin"
           maxLength={17}
           minLength={17}
@@ -68,17 +83,32 @@ export function NewInspectionPage(): JSX.Element {
           onChange={onChange}
           placeholder="1FTFW1E50JFB12345"
           value={form.vin}
+          aria-invalid={fieldErrors.vin ? 'true' : 'false'}
+          aria-describedby={fieldErrors.vin ? 'vin-error' : undefined}
         />
+        {fieldErrors.vin ? (
+          <p className="field-error" id="vin-error" role="alert">
+            {fieldErrors.vin}
+          </p>
+        ) : null}
 
         <label htmlFor="customerName">Customer Name</label>
         <input
+          className={fieldErrors.customerName ? 'is-invalid' : undefined}
           id="customerName"
           maxLength={120}
           name="customerName"
           onChange={onChange}
           placeholder="Jordan Lee"
           value={form.customerName}
+          aria-invalid={fieldErrors.customerName ? 'true' : 'false'}
+          aria-describedby={fieldErrors.customerName ? 'customerName-error' : undefined}
         />
+        {fieldErrors.customerName ? (
+          <p className="field-error" id="customerName-error" role="alert">
+            {fieldErrors.customerName}
+          </p>
+        ) : null}
 
         <label htmlFor="status">Starting Status</label>
         <select id="status" name="status" onChange={onChange} value={form.status}>
@@ -86,9 +116,17 @@ export function NewInspectionPage(): JSX.Element {
           <option value="IN_PROGRESS">In Progress</option>
         </select>
 
-        <button type="submit">Create Inspection</button>
+        <button disabled={isSubmitting} type="submit">
+          {isSubmitting ? (
+            <span className="button-loading">
+              <span aria-hidden="true" className="button-spinner" />
+              Creating...
+            </span>
+          ) : (
+            'Create Inspection'
+          )}
+        </button>
 
-        {error ? <p className="alert alert-error">{error}</p> : null}
         {message ? <p className="alert alert-success">{message}</p> : null}
       </form>
     </PageSection>
