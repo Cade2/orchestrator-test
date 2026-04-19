@@ -3,6 +3,7 @@ import express, { Request, Response } from 'express';
 
 import { env } from './config/env';
 import { healthRouter } from './routes/health';
+import { inspectionsRouter } from './routes/inspections';
 
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
@@ -31,6 +32,7 @@ export function createApp() {
   });
 
   app.use('/health', healthRouter);
+  app.use('/api/inspections', inspectionsRouter);
 
   app.use((_req, res) => {
     res.status(404).json({
