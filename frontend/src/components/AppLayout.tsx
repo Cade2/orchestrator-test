@@ -1,6 +1,8 @@
 import type { JSX } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
+import { env } from '../config/env';
+
 type NavItem = {
   label: string;
   path: string;
@@ -62,6 +64,7 @@ export function AppLayout(): JSX.Element {
         <div className="active-path" aria-live="polite">
           <span className="active-path-label">Current View</span>
           <strong>{formatPath(location.pathname)}</strong>
+          <span className="active-path-meta">API Base URL: {env.apiBaseUrl}</span>
         </div>
       </header>
 

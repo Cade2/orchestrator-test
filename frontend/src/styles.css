@@ -378,3 +378,9 @@ button:focus-visible {
     width: 100%;
   }
 }
+
+.active-path-meta {
+  color: var(--muted);
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}

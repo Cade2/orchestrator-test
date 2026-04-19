@@ -1,12 +1,22 @@
+import { resolve } from 'node:path';
+
 import { config } from 'dotenv';
 
-config();
+const dotenvPath = resolve(__dirname, '../../.env');
+const dotenvResult = config({ path: dotenvPath });
+
+if (dotenvResult.error) {
+  const errorCode = (dotenvResult.error as NodeJS.ErrnoException).code;
+  if (errorCode !== 'ENOENT') {
+    throw new Error(`Failed to load environment variables from ${dotenvPath}: ${dotenvResult.error.message}`);
+  }
+}
 
 const REQUIRED_KEYS = ['DATABASE_URL', 'SESSION_SECRET', 'PORT', 'CORS_ORIGIN'] as const;
 
 type RequiredEnvKey = (typeof REQUIRED_KEYS)[number];
 
-interface AppEnv {
+export interface AppEnv {
   databaseUrl: string;
   sessionSecret: string;
   port: number;
