@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InspectionStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+enum DamageSeverity {
+  MINOR
+  MODERATE
+  MAJOR
+  CRITICAL
+}
+
+enum VehicleArea {
+  FRONT
+  REAR
+  LEFT_SIDE
+  RIGHT_SIDE
+  ROOF
+  INTERIOR
+  ENGINE_BAY
+  UNDERCARRIAGE
+  GLASS
+  WHEELS
+  OTHER
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  inspections  Inspection[]
+}
+
+model Inspection {
+  id            String           @id @default(cuid())
+  userId        String
+  title         String
+  status        InspectionStatus @default(DRAFT)
+  vehicleVin    String?
+  vehicleMake   String?
+  vehicleModel  String?
+  vehicleYear   Int?
+  summary       String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  damageNotes   DamageNote[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model DamageNote {
+  id           String         @id @default(cuid())
+  inspectionId String
+  area         VehicleArea
+  severity     DamageSeverity
+  description  String
+  imageUrl     String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  inspection   Inspection     @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+
+  @@index([inspectionId])
+  @@index([area])
+  @@index([severity])
+}
