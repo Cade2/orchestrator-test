@@ -1,4 +1,4 @@
-import { DamageSeverity, InspectionStatus, VehicleArea } from '@prisma/client';
+import type { DamageSeverity, InspectionStatus, VehicleArea } from '@prisma/client';
 
 export interface InspectionSchemaResponseDto {
   statuses: readonly InspectionStatus[];
@@ -19,4 +19,3 @@ export interface InspectionListItemDto {
   createdAt: string;
   updatedAt: string;
 }
-

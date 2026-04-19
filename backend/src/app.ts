@@ -1,5 +1,7 @@
-import cors, { CorsOptions } from 'cors';
-import express, { Request, Response } from 'express';
+import cors from 'cors';
+import express from 'express';
+import type { CorsOptions } from 'cors';
+import type { Request, Response } from 'express';
 
 import { env } from './config/env';
 import { healthRouter } from './routes/health';

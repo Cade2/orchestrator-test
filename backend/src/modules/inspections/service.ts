@@ -1,6 +1,6 @@
 import { getInspectionSchema } from './domain';
 import { InspectionRepository } from './repository';
-import { InspectionListItemDto, InspectionSchemaResponseDto } from './types';
+import type { InspectionListItemDto, InspectionSchemaResponseDto } from './types';
 
 export class InspectionService {
   constructor(private readonly repository: InspectionRepository = new InspectionRepository()) {}
@@ -19,4 +19,3 @@ export class InspectionService {
     return this.repository.listByUserId(normalizedUserId);
   }
 }
-

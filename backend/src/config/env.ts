@@ -12,9 +12,7 @@ if (dotenvResult.error) {
   }
 }
 
-const REQUIRED_KEYS = ['DATABASE_URL', 'SESSION_SECRET', 'PORT', 'CORS_ORIGIN'] as const;
-
-type RequiredEnvKey = (typeof REQUIRED_KEYS)[number];
+type RequiredEnvKey = 'DATABASE_URL' | 'SESSION_SECRET' | 'PORT' | 'CORS_ORIGIN';
 
 export interface AppEnv {
   databaseUrl: string;

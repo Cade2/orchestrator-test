@@ -1,7 +1,7 @@
-import { InspectionStatus, PrismaClient } from '@prisma/client';
+import type { InspectionStatus, PrismaClient } from '@prisma/client';
 
 import { prisma } from '../../db/prisma';
-import { InspectionListItemDto } from './types';
+import type { InspectionListItemDto } from './types';
 
 function toInspectionListItemDto(record: {
   id: string;
